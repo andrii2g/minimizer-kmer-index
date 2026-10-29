@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>DNA minimizers · memory and sensitivity</title>
+<style>
+:root{font:16px system-ui,sans-serif;color:#172554;background:#f1f5f9}body{max-width:1400px;margin:0 auto;padding:32px}h1{font-size:clamp(28px,4vw,44px);margin-bottom:8px}h2{font-size:22px}p{line-height:1.6;color:#475569}.eyebrow{color:#0f766e;font-weight:700;letter-spacing:.12em;font-size:12px}.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px;margin:24px 0}.card,section{background:white;border:1px solid #dbe3ee;border-radius:12px;padding:20px}.card b{display:block;font-size:28px;color:#0f766e}.card span{display:block;margin-top:8px;color:#475569;font-size:14px}section{margin:20px 0}.scroll{overflow-x:auto}#alignment{display:block;min-width:1000px;width:100%}.base{font:15px ui-monospace,monospace;fill:#172554}.label{font:11px system-ui,sans-serif;fill:#475569}.tick{font:9px ui-monospace,monospace;fill:#64748b}input{width:min(620px,90%);accent-color:#0d9488}output{display:block;margin:10px 0;color:#1d4ed8;font-size:14px}.legend{display:flex;gap:20px;flex-wrap:wrap;font-size:14px}.legend span::before{content:'';display:inline-block;width:10px;height:10px;border-radius:2px;background:var(--c);margin-right:6px}summary{cursor:pointer;font-weight:600}pre{overflow:auto;font-size:12px;line-height:1.6}.status{font-weight:700;color:#0f766e}footer{font-size:13px;color:#64748b}
+</style></head><body>
+<div class="eyebrow">ALGORITHMS / SEQUENCE FINGERPRINTS</div>
+<h1>Less index. How many anchors survive?</h1>
+<p>A minimizer keeps the lowest-ranked k-mer in each overlapping window. Increasing the window size saves indexed positions; substitutions can erase the anchors a query shares with its source.</p>
+<p>{{PARAMETERS}}</p><div class="cards">{{CARDS}}</div>
+<section><h2>Follow a window through the two sequences</h2>
+<p>Gray strokes show every k-mer; colored strokes below the bases show selected minimizers. Hover over strokes for exact positions and ranks. Teal lines connect shared anchors at their true aligned positions. The reference track uses selection from the full reference, including flanking windows.</p>
+<label for="window-slider">Window start in displayed query</label><br><input id="window-slider" type="range" min="0" max="{{MAX_WINDOW}}" value="0" step="1"><output id="window-description" for="window-slider"></output>
+<div class="legend"><span style="--c:#0d9488">Shared anchor</span><span style="--c:#d97706">Reference anchor without a selected query counterpart</span><span style="--c:#7c3aed">Query anchor without a selected reference counterpart</span><span style="--c:#fee2e2">Substitution</span><span style="--c:#1d4ed8">Current window winner</span></div>
+<div class="scroll">{{ALIGNMENT}}</div>
+<p>Blue dots identify the leftmost minimum of the current aligned window. Equal hashes are ordered by exact k-mer value. Moving the slider changes the highlighted window; the complete minimizer sketches remain visible.</p></section>
+<section><h2>Where does the query vote?</h2><p class="status">{{STATUS}}</p>
+<p>Each shared selected key votes for reference position minus query position. Bar height counts distinct supporting query positions. Hover for votes and verified Hamming distance; teal marks the known source start. An empty chart means no seed-supported candidates.</p>{{HISTOGRAM}}</section>
+<section><h2>Read the trade-off correctly</h2><p>Cards summarize the configured experiment; the alignment and votes show its first query. Seed recall counts shared selected anchors divided by all exact k-mers surviving at the true position. It is undefined when none survive. Mapping recall measures whether the known start has a candidate, before any mismatch threshold. High seed recall and high mapping recall are different objectives.</p>
+<p>Index bytes count sorted keys, offsets and positions, excluding extraction buffers, allocator metadata and build scratch space. Both index variants use the same layout. Selector timings use the same precomputed fingerprints, one warm-up and the median of measured runs. Query timings are totals; oracle checks are excluded.</p>
+<details><summary>Raw metrics (CSV)</summary><pre>{{CSV}}</pre></details></section>
+<footer>Deterministic synthetic A/C/G/T data · substitution-only matching · exact keys prevent hash-collision matches · standalone report with no network dependencies</footer>
+<script>
+const refWinners = [{{REF_WINNERS}}];
+const queryWinners = [{{QUERY_WINNERS}}];
+const slider = document.getElementById('window-slider');
+function update() {
+  const start = Number(slider.value);
+  document.getElementById('window').setAttribute('x', 140 + start * 16);
+  document.getElementById('ref-winner').setAttribute('cx', 140 + (refWinners[start] + {{K}} / 2) * 16);
+  document.getElementById('query-winner').setAttribute('cx', 140 + (queryWinners[start] + {{K}} / 2) * 16);
+  document.getElementById('window-description').textContent = `Window ${start}: reference winner at ${refWinners[start] + {{ORIGIN}}}; query winner at ${queryWinners[start]}.`;
+}
+slider.addEventListener('input', update);
+update();
+</script></body></html>

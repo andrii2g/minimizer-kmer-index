@@ -12,14 +12,35 @@ pub struct Candidate {
 /// Return all in-bounds seed-supported starts, ordered by votes then position.
 /// Repeated input seeds cannot inflate the number of supporting query positions.
 pub fn candidates(index: &Index, seeds: &[Kmer], reference: &[u8], query: &[u8]) -> Vec<Candidate> {
-    if query.is_empty() || query.len() > reference.len() {
+    candidate_starts(index, seeds, reference.len(), query.len())
+        .into_iter()
+        .map(|(start, votes)| Candidate {
+            start,
+            votes,
+            mismatches: hamming(
+                &reference[start as usize..start as usize + query.len()],
+                query,
+            )
+            .unwrap(),
+        })
+        .collect()
+}
+
+/// Lookup and voting without sequence verification; sorted by votes then start.
+pub fn candidate_starts(
+    index: &Index,
+    seeds: &[Kmer],
+    reference_len: usize,
+    query_len: usize,
+) -> Vec<(u32, usize)> {
+    if query_len == 0 || query_len > reference_len {
         return Vec::new();
     }
     let mut votes: BTreeMap<u32, BTreeSet<u32>> = BTreeMap::new();
     for seed in seeds {
         for &position in index.lookup(seed.key) {
             if let Some(start) = position.checked_sub(seed.position)
-                && start as usize <= reference.len() - query.len()
+                && start as usize <= reference_len - query_len
             {
                 votes.entry(start).or_default().insert(seed.position);
             }
@@ -27,17 +48,9 @@ pub fn candidates(index: &Index, seeds: &[Kmer], reference: &[u8], query: &[u8])
     }
     let mut result: Vec<_> = votes
         .into_iter()
-        .map(|(start, positions)| Candidate {
-            start,
-            votes: positions.len(),
-            mismatches: hamming(
-                &reference[start as usize..start as usize + query.len()],
-                query,
-            )
-            .unwrap(),
-        })
+        .map(|(start, positions)| (start, positions.len()))
         .collect();
-    result.sort_unstable_by_key(|c| (std::cmp::Reverse(c.votes), c.start));
+    result.sort_unstable_by_key(|&(start, votes)| (std::cmp::Reverse(votes), start));
     result
 }
 

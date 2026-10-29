@@ -1,0 +1,8 @@
+[package]
+name = "minimizer-kmer-index"
+version = "0.1.0"
+edition = "2024"
+description = "An educational minimizer index with comparable selectors and reproducible DNA experiments"
+license = "MIT"
+
+[dependencies]
